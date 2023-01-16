@@ -1,5 +1,5 @@
 import CssBaseline from "@mui/material/CssBaseline";
-import React from "react";
+import React, { useRef, useState } from "react";
 import "./App.css";
 import Container from "@mui/material/Container";
 import { PokeListContainer } from "./components/PokeListContainer";
@@ -8,7 +8,7 @@ function App() {
   return (
     <React.Fragment>
       <CssBaseline />
-      <Container maxWidth="lg">
+      <Container maxWidth="xl">
         <PokeListContainer />
       </Container>
     </React.Fragment>

@@ -22,19 +22,62 @@ type PokeModalProps = {
   onClose: () => void;
 };
 
+interface PokemonListResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Array<PokeList>;
+}
+
+const API_URL = "https://pokeapi.co/api/v2";
+
 export function PokeListContainer() {
   const [pokemons, setPokemons] = useState<Array<PokeList>>([]);
   const [selected, setSelected] = useState<string>("");
+  const [next, setNext] = useState<string | null>(null);
+
+  const [isEndScroll, setIsEndScroll] = useState<boolean>(false);
+
+  const handleScroll = (e: any) => {
+    const bottom =
+      e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
+    if (bottom) {
+      console.log("we are at bottom");
+      setIsEndScroll(true);
+    }
+  };
 
   useEffect(() => {
-    fetch("https://pokeapi.co/api/v2/pokemon")
+    fetch(`${API_URL}/pokemon`)
       .then((res) => res.json())
-      .then((res) => setPokemons(res.results));
+      .then((res: PokemonListResponse) => {
+        setPokemons(res.results);
+        setNext(res.next);
+      });
   }, []);
 
+  useEffect(() => {
+    isEndScroll &&
+      !!next &&
+      fetch(next)
+        .then((res) => res.json())
+        .then((res: PokemonListResponse) => {
+          setPokemons((prev) => [...prev, ...res.results]);
+          setNext(res.next);
+          setIsEndScroll(false);
+        });
+  }, [isEndScroll]);
+
   return (
-    <>
-      <Typography variant="h4" component="h4">
+    <div
+      style={{
+        overflowY: "scroll",
+        overflowX: "hidden",
+        maxHeight: "80vh",
+      }}
+      onScroll={handleScroll}
+    >
+      <Typography variant="h4" component="h4" sx={{ my: "1.5rem" }}>
         Pokemon List
       </Typography>
 
@@ -71,7 +114,7 @@ export function PokeListContainer() {
         open={!!selected}
         onClose={() => setSelected("")}
       />
-    </>
+    </div>
   );
 }
 
