@@ -1,77 +1,53 @@
 import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
-import {
-  Button,
-  Card,
-  CardActions,
-  CardContent,
-  Typography,
-} from "@mui/material";
-import Modal from "@mui/material/Modal";
+import { Typography } from "@mui/material";
 import { IPokemon } from "../config/pokemon";
 import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "../app/store";
-
-type PokeList = {
-  name: string;
-  url: string;
-};
-
-type PokeModalProps = {
-  open: boolean;
-  pokeUrl: string;
-  onClose: () => void;
-};
-
-interface PokemonListResponse {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: Array<PokeList>;
-}
-
-const API_URL = "https://pokeapi.co/api/v2";
+import { sagaActions } from "../sagaActions";
+import PokeDetailsModal from "./PokeDetailsModal";
+import PokeCard from "./PokeCard";
+import { PokeListItem } from "../app/store";
 
 export function PokeListContainer() {
-  const [pokemons, setPokemons] = useState<Array<PokeList>>([]);
-  const [selected, setSelected] = useState<string>("");
-  const [next, setNext] = useState<string | null>(null);
-
-  const pokemon = useSelector((state: RootState) => state.pokemon.pokemon);
   const dispatch = useDispatch();
+
+  const pokemon: Array<PokeListItem> = useSelector(
+    (state: any) => state.pokemon.pokemon
+  );
+
+  const _next: string = useSelector((state: any) => state.pokemon.next);
+
+  const selected: IPokemon = useSelector(
+    (state: any) => state.pokemon.selected
+  );
 
   const [isEndScroll, setIsEndScroll] = useState<boolean>(false);
 
   const handleScroll = (e: any) => {
+    setIsEndScroll(false);
     const bottom =
       e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
     if (bottom) {
-      console.log("we are at bottom");
       setIsEndScroll(true);
     }
   };
 
   useEffect(() => {
-    fetch(`${API_URL}/pokemon`)
-      .then((res) => res.json())
-      .then((res: PokemonListResponse) => {
-        setPokemons(res.results);
-        setNext(res.next);
-      });
-  }, []);
-
-  useEffect(() => {
     isEndScroll &&
-      !!next &&
-      fetch(next)
-        .then((res) => res.json())
-        .then((res: PokemonListResponse) => {
-          setPokemons((prev) => [...prev, ...res.results]);
-          setNext(res.next);
-          setIsEndScroll(false);
-        });
+      dispatch({
+        type: sagaActions.LOAD_POKEMON_SAGA,
+        payload: { params: _next.split("?")[1] },
+      });
   }, [isEndScroll]);
+
+  //initial load
+  useEffect(() => {
+    dispatch({
+      type: sagaActions.LOAD_POKEMON_SAGA,
+      payload: { params: "" },
+    });
+  }, []);
 
   return (
     <div
@@ -88,95 +64,31 @@ export function PokeListContainer() {
 
       <Box sx={{ flexGrow: 1 }}>
         <Grid container spacing={2}>
-          {pokemon.map(({ name, url }, idx) => (
-            <Grid item lg={3} key={idx}>
-              <Card sx={{ minWidth: 275 }}>
-                <CardContent>
-                  <Typography
-                    sx={{ fontSize: 14 }}
-                    color="text.secondary"
-                    gutterBottom
-                  >
-                    Poke Card
-                  </Typography>
-                  <Typography variant="h5" component="div">
-                    {name}
-                  </Typography>
-                </CardContent>
-                <CardActions>
-                  <Button size="small" onClick={() => setSelected(url)}>
-                    Details
-                  </Button>
-                </CardActions>
-              </Card>
-            </Grid>
+          {pokemon.map((poke: PokeListItem, idx: number) => (
+            <PokeCard
+              key={idx}
+              name={poke.name}
+              onClick={() =>
+                dispatch({
+                  type: sagaActions.SELECT_POKEMON,
+                  payload: { url: poke.url },
+                })
+              }
+            />
           ))}
         </Grid>
       </Box>
 
-      <PokeModal
-        pokeUrl={selected}
+      <PokeDetailsModal
+        pokemon={selected}
         open={!!selected}
-        onClose={() => setSelected("")}
+        onClose={() =>
+          dispatch({
+            type: sagaActions.SELECT_POKEMON,
+            payload: null,
+          })
+        }
       />
     </div>
   );
 }
-
-const PokeModal = ({ open, pokeUrl, onClose }: PokeModalProps) => {
-  const [pokemon, setPokemon] = useState<IPokemon | null>({} as IPokemon);
-
-  useEffect(() => {
-    pokeUrl &&
-      fetch(pokeUrl)
-        .then((res) => res.json())
-        .then(setPokemon);
-  }, [pokeUrl]);
-
-  const handleClose = () => {
-    setPokemon(null);
-    onClose();
-  };
-
-  const style = {
-    position: "absolute" as "absolute",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%, -50%)",
-    width: 400,
-    bgcolor: "background.paper",
-    border: "2px solid #000",
-    boxShadow: 24,
-    p: 4,
-  };
-
-  if (!open) return null;
-
-  return (
-    <Modal
-      open={open}
-      onClose={handleClose}
-      aria-labelledby="modal-pokemon-details"
-    >
-      {pokemon ? (
-        <Box sx={style}>
-          <img src={pokemon.sprites?.["front_default"]} alt="" />
-          <Typography id="modal-modal-title" variant="h6" component="h2">
-            {pokemon.name}
-          </Typography>
-          <Typography id="modal-modal-description" sx={{ mt: 2 }}>
-            Base experience: {pokemon.base_experience}
-          </Typography>
-          <Typography id="modal-modal-description" sx={{ mt: 2 }}>
-            height: {pokemon.height}
-          </Typography>
-          <Typography id="modal-modal-description" sx={{ mt: 2 }}>
-            Weight: {pokemon.weight}
-          </Typography>
-        </Box>
-      ) : (
-        <p>No pokemon found</p>
-      )}
-    </Modal>
-  );
-};

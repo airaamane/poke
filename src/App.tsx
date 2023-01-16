@@ -1,6 +1,5 @@
 import CssBaseline from "@mui/material/CssBaseline";
 import React, { useRef, useState } from "react";
-import "./App.css";
 import Container from "@mui/material/Container";
 import { PokeListContainer } from "./components/PokeListContainer";
 
