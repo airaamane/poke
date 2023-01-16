@@ -10,6 +10,8 @@ import {
 } from "@mui/material";
 import Modal from "@mui/material/Modal";
 import { IPokemon } from "../config/pokemon";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../app/store";
 
 type PokeList = {
   name: string;
@@ -35,6 +37,9 @@ export function PokeListContainer() {
   const [pokemons, setPokemons] = useState<Array<PokeList>>([]);
   const [selected, setSelected] = useState<string>("");
   const [next, setNext] = useState<string | null>(null);
+
+  const pokemon = useSelector((state: RootState) => state.pokemon.pokemon);
+  const dispatch = useDispatch();
 
   const [isEndScroll, setIsEndScroll] = useState<boolean>(false);
 
@@ -83,7 +88,7 @@ export function PokeListContainer() {
 
       <Box sx={{ flexGrow: 1 }}>
         <Grid container spacing={2}>
-          {pokemons.map(({ name, url }, idx) => (
+          {pokemon.map(({ name, url }, idx) => (
             <Grid item lg={3} key={idx}>
               <Card sx={{ minWidth: 275 }}>
                 <CardContent>
